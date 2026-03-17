@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProducts } from '../state/products'
+import { useFeedback, type FeedbackItem } from '../state/feedback'
 import '../styles/ui.css'
 
 export function ProductPage() {
   const { id } = useParams()
   const { getById } = useProducts()
   const product = useMemo(() => (id ? getById(id) : undefined), [getById, id])
+
+  const { addFeedback, getByProductId } = useFeedback()
+  const feedbackList = useMemo(() => (product ? getByProductId(product.id) : []), [product, getByProductId])
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [videoName, setVideoName] = useState<string | null>(null)
@@ -38,6 +42,26 @@ export function ProductPage() {
 
   const chars = feedback.length
   const remaining = Math.max(0, maxChars - chars)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!feedback.trim()) return
+
+    addFeedback({
+      productId: product.id,
+      text: feedback,
+      videoName: videoName,
+    })
+
+    setSubmitted(true)
+    setFeedback('')
+    setVideoName(null)
+    setVideoUrl(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    
+    // reset success message after a delay
+    setTimeout(() => setSubmitted(false), 3000)
+  }
 
   return (
     <section className="page">
@@ -129,13 +153,7 @@ export function ProductPage() {
             </div>
           </div>
 
-          <form
-            className="form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              setSubmitted(true)
-            }}
-          >
+          <form className="form" onSubmit={handleSubmit}>
             <label className="label" htmlFor="feedback">
               What should we improve?
             </label>
@@ -158,6 +176,23 @@ export function ProductPage() {
               </button>
             </div>
           </form>
+
+          {feedbackList.length > 0 && (
+            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
+              <div className="h2" style={{ marginBottom: '1rem' }}>Recent Feedback</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {feedbackList.map((item) => (
+                  <div key={item.id} className="glass" style={{ padding: '1rem' }}>
+                    <p style={{ margin: '0 0 0.5rem 0', lineHeight: 1.5 }}>"{item.text}"</p>
+                    <div className="subtle" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>{new Date(item.timestamp).toLocaleDateString()}</span>
+                      {item.videoName && <span>📎 {item.videoName}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
