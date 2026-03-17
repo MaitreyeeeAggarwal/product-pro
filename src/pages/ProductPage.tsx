@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProducts } from '../state/products'
-import { useFeedback, type FeedbackItem } from '../state/feedback'
+import { useFeedback } from '../state/feedback'
 import '../styles/ui.css'
 
 export function ProductPage() {
