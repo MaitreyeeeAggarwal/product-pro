@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { type Product, type ProductType } from '../data/products'
 import { ProductCard } from '../components/ProductCard'
 import { QuickAddModal } from '../components/QuickAddModal'
-import { CatalogSidebar } from '../components/CatalogSidebar'
+
 import { useProducts } from '../state/products'
 import '../styles/ui.css'
 
@@ -12,7 +12,7 @@ export function GalleryPage() {
   const [ratings, setRatings] = useState<Record<string, number>>(initialRatings)
   const [activeType, setActiveType] = useState<ProductType | 'all'>('all')
   const [quickAddOpen, setQuickAddOpen] = useState(false)
-  const [catalogOpen, setCatalogOpen] = useState(false)
+
 
   const types: (ProductType | 'all')[] = useMemo(
     () => ['all', 'lighting', 'audio', 'desk', 'accessory', 'bag', 'watch', 'home'],
@@ -50,38 +50,10 @@ export function GalleryPage() {
             ))}
           </div>
 
-          <div className="filters__actions">
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={() => setCatalogOpen(true)}
-            >
-              Catalog
-            </button>
-          </div>
+
         </div>
 
-        {products.some((p) => p.imported) && (
-          <div className="tray">
-            <div className="tray__head">
-              <span className="tray__label">To-Rate</span>
-              <span className="tray__count">{products.filter((p) => p.imported).length}</span>
-            </div>
-            <div className="tray__items">
-              {products.filter((p) => p.imported).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="trayItem"
-                  onClick={() => setActiveType(p.type)}
-                >
-                  <span className="trayItem__dot" />
-                  <span className="trayItem__name">{p.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         <div className="grid">
           {filteredProducts.map((p) => (
@@ -125,14 +97,7 @@ export function GalleryPage() {
         }}
       />
 
-      <CatalogSidebar
-        open={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
-        onSelect={(product) => {
-          addProduct({ ...product, imported: true })
-          setRatings((prev) => ({ ...prev, [product.id]: 0 }))
-        }}
-      />
+
     </>
   )
 }

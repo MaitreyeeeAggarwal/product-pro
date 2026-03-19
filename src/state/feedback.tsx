@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export type FeedbackItem = {
   id: string
@@ -6,6 +7,7 @@ export type FeedbackItem = {
   text: string
   videoName: string | null
   timestamp: string
+  rating?: number
 }
 
 type FeedbackContextValue = {
@@ -16,41 +18,66 @@ type FeedbackContextValue = {
 
 const FeedbackContext = createContext<FeedbackContextValue | null>(null)
 
-const LS_KEY = 'product-pro:user-feedback:v1'
-
-function loadFeedback(): FeedbackItem[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed as FeedbackItem[]
-  } catch {
-    return []
-  }
-}
-
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
-  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>(() => loadFeedback())
+  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(feedbackList))
-    } catch {
-      // ignore
-    }
-  }, [feedbackList])
+    supabase
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error fetching feedback:', error)
+          return
+        }
+        if (data) {
+          const fetchedFeedback: FeedbackItem[] = data.map((row) => ({
+            id: row.id,
+            productId: row.product_id,
+            text: row.text,
+            rating: row.rating,
+            videoName: row.video_name,
+            timestamp: row.created_at,
+          }))
+          setFeedbackList(fetchedFeedback)
+        }
+      })
+  }, [])
 
   const value = useMemo<FeedbackContextValue>(
     () => ({
       feedback: feedbackList,
-      addFeedback: (item) => {
-        const newItem: FeedbackItem = {
-          ...item,
-          id: `feedback-${Date.now()}`,
-          timestamp: new Date().toISOString(),
+      addFeedback: async (item) => {
+        const newItemPayload = {
+          product_id: item.productId,
+          text: item.text,
+          rating: item.rating || 0,
+          video_name: item.videoName,
         }
-        setFeedbackList((prev) => [newItem, ...prev])
+
+        const { data, error } = await supabase
+          .from('feedback')
+          .insert(newItemPayload)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Failed to add feedback:', error)
+          return
+        }
+
+        if (data) {
+          const addedItem: FeedbackItem = {
+            id: data.id,
+            productId: data.product_id,
+            text: data.text,
+            rating: data.rating,
+            videoName: data.video_name,
+            timestamp: data.created_at,
+          }
+          setFeedbackList((prev) => [addedItem, ...prev])
+        }
       },
       getByProductId: (productId) => feedbackList.filter((f) => f.productId === productId),
     }),

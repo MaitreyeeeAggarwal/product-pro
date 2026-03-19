@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useProducts } from '../state/products'
 import { useFeedback } from '../state/feedback'
+import { StarRating } from '../components/StarRating'
 import '../styles/ui.css'
 
 export function ProductPage() {
@@ -17,6 +18,7 @@ export function ProductPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [feedback, setFeedback] = useState('')
+  const [rating, setRating] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const maxChars = 240
 
@@ -45,16 +47,18 @@ export function ProductPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!feedback.trim()) return
+    if (!feedback.trim() && rating === 0) return
 
     addFeedback({
       productId: product.id,
-      text: feedback,
+      text: feedback || 'No written feedback provided.',
       videoName: videoName,
+      rating: rating,
     })
 
     setSubmitted(true)
     setFeedback('')
+    setRating(0)
     setVideoName(null)
     setVideoUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -63,24 +67,43 @@ export function ProductPage() {
     setTimeout(() => setSubmitted(false), 3000)
   }
 
+  const displayName = product.name
+
   return (
     <section className="page">
-      <div className="pageHead pageHead--row">
-        <div>
+      <div className="pageHead pageHead--row" style={{ alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0, paddingRight: '16px' }}>
           <div className="crumbs">
             <Link className="crumbs__link" to="/gallery">
               Gallery
             </Link>
             <span className="crumbs__sep">/</span>
-            <span className="crumbs__current">{product.name}</span>
+            <span className="crumbs__current" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</span>
           </div>
-          <h1 className="h1">{product.name}</h1>
-          {product.tagline ? <p className="subtle">{product.tagline}</p> : null}
+          <h1 className="h1" style={{ wordBreak: 'break-word', marginTop: '4px', fontSize: '24px' }}>{displayName}</h1>
+          {product.tagline ? <p className="subtle" style={{ marginTop: '8px' }}>{product.tagline}</p> : null}
         </div>
 
-        <Link className="pill" to="/gallery">
+        <Link className="pill" to="/gallery" style={{ flexShrink: 0, marginTop: '24px' }}>
           Back
         </Link>
+      </div>
+
+      <div className="glass" style={{ marginBottom: '24px', padding: '24px', display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 240px', maxWidth: '320px', aspectRatio: '4/3', borderRadius: 'var(--radius-sm)', overflow: 'hidden', position: 'relative', boxShadow: 'var(--neu-inner)' }}>
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+             <div className={`card__imgPh card__imgPh--${product.accent}`} />
+          )}
+        </div>
+        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center' }}>
+          <div style={{ fontSize: '32px', fontWeight: 600 }}>{product.price}</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span className="badge" style={{ textTransform: 'capitalize' }}>{product.type}</span>
+            {product.imported && <span className="badge badge--imported">Imported</span>}
+          </div>
+        </div>
       </div>
 
       <div className="split">
@@ -154,6 +177,11 @@ export function ProductPage() {
           </div>
 
           <form className="form" onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '8px' }}>
+              <div className="label" style={{ marginBottom: '8px', display: 'block' }}>Rate this product</div>
+              <StarRating value={rating} onChange={setRating} />
+            </div>
+
             <label className="label" htmlFor="feedback">
               What should we improve?
             </label>
@@ -183,11 +211,12 @@ export function ProductPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {feedbackList.map((item) => (
                   <div key={item.id} className="glass" style={{ padding: '1rem' }}>
-                    <p style={{ margin: '0 0 0.5rem 0', lineHeight: 1.5 }}>"{item.text}"</p>
-                    <div className="subtle" style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{new Date(item.timestamp).toLocaleDateString()}</span>
-                      {item.videoName && <span>📎 {item.videoName}</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <StarRating value={item.rating || 0} size="sm" />
+                      <span className="subtle" style={{ fontSize: '0.85rem' }}>{new Date(item.timestamp).toLocaleDateString()}</span>
                     </div>
+                    <p style={{ margin: '0 0 0.5rem 0', lineHeight: 1.5 }}>"{item.text}"</p>
+                    {item.videoName && <div className="subtle" style={{ fontSize: '0.85rem' }}>📎 {item.videoName}</div>}
                   </div>
                 ))}
               </div>
